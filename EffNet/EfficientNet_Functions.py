@@ -105,7 +105,8 @@ def restore_model(checkpoint_path, compile_m = True, learning_rate = 0.001, mome
 
 
 #train model
-def train_effnetv2(model, train_generator, valid_generator, num_epochs, learning_rate, restore = False,\
+def train_effnetv2(model, train_generator, valid_generator, num_epochs, learning_rate, decay = False,
+                   restore = False,\
                    checkpoint_path = "/projectnb/dl523/students/nannkat/EC520/training/cp.ckpt",\
                    model_path = '/projectnb/dl523/students/nannkat/EC520/training/effnetv2_model', momentum = 0.9):
     
@@ -113,7 +114,11 @@ def train_effnetv2(model, train_generator, valid_generator, num_epochs, learning
     checkpoint_dir = os.path.dirname(checkpoint_path)
     
     # Save checkpoints in case training session is cut off
-    cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,save_weights_only=True, verbose=1)
+    callback_list = []
+    callback_list.append(tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,save_weights_only=True, verbose=1))
+    callback_list.append(tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=3, verbose=1))
+    if decay:
+        callback_list.append(tf.keras.callbacks.LearningRateScheduler(learning_rate.get_config()))
     
     if not restore:
         model.compile(optimizer=tf.keras.optimizers.SGD(learning_rate=learning_rate, momentum=momentum), 
@@ -123,8 +128,13 @@ def train_effnetv2(model, train_generator, valid_generator, num_epochs, learning
     steps_per_epoch = train_generator.samples // train_generator.batch_size
     validation_steps = valid_generator.samples // valid_generator.batch_size
     
-    hist = model.fit(train_generator, epochs = num_epochs, validation_data = valid_generator, steps_per_epoch=steps_per_epoch,\
-                 validation_steps=validation_steps, callbacks=[cp_callback]).history
+    hist = model.fit(train_generator, epochs = num_epochs,\
+                     validation_data = valid_generator,\
+                     steps_per_epoch = steps_per_epoch,\
+                     validation_steps = validation_steps, \
+                     callbacks = callback_list).history
+    
+    
     
     #save model as a whole to share with the others
     model.save(model_path)
