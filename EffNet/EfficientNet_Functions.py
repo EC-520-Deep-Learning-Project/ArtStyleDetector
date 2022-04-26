@@ -66,14 +66,25 @@ def visualize_input(generator):
         
 
 #func to get effnet model
-def get_effnetv2(do_fine_tuning, model_name, weights = 'imagenet'):
+def unfreeze_effnet(model, num_unfreeze):
+    n = len(model.layers)
+    num_unfreeze = 5
+    start_freeze = n - num_unfreeze
+    for i in range(start_freeze, n):
+        model.layers[i].trainable = True
+    print("Unfroze {} layers".format(num_unfreeze))
+    
+def get_effnetv2(do_fine_tuning, model_name, weights = 'imagenet', unfreeze = 0):
     tf.keras.backend.clear_session()
     base_model = effnetv2_model.get_model(model_name, weights = weights, include_top=False)
     base_model.trainable = do_fine_tuning
+    if unfreeze > 0:
+        unfreeze_effnet(base_model, unfreeze)
+        
     return base_model
 
 #func to get overall model
-def get_new_model():
+def get_new_model(unfreeze = 0):
     model_name = 'efficientnetv2-l' #@param {type:'string'}
     do_fine_tuning = False
     weights = 'imagenet21k'
@@ -81,7 +92,7 @@ def get_new_model():
     tf.keras.backend.clear_session()
     model = tf.keras.models.Sequential([
         tf.keras.layers.InputLayer(input_shape=[image_size, image_size, 3]),
-        get_effnetv2(do_fine_tuning, model_name, weights = weights),
+        get_effnetv2(do_fine_tuning, model_name, weights = weights, unfreeze = unfreeze),
         tf.keras.layers.Dropout(rate=0.2),
         tf.keras.layers.Dense(25, activation='softmax'),
     ])
@@ -117,8 +128,6 @@ def train_effnetv2(model, train_generator, valid_generator, num_epochs, learning
     callback_list = []
     callback_list.append(tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,save_weights_only=True, verbose=1))
     callback_list.append(tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=3, verbose=1))
-    if decay:
-        callback_list.append(tf.keras.callbacks.LearningRateScheduler(learning_rate.get_config()))
     
     if not restore:
         model.compile(optimizer=tf.keras.optimizers.SGD(learning_rate=learning_rate, momentum=momentum), 
@@ -169,7 +178,6 @@ def plot_training(hist):
 
     plt.show()
 
-  
     
 def visualize_results(model, generator):
     plt.figure(figsize=(10, 10))
