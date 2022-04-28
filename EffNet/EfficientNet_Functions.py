@@ -67,19 +67,22 @@ def visualize_input(generator):
 
 #func to get effnet model
 def unfreeze_effnet(model, num_unfreeze):
-    n = len(model.layers)
-    num_unfreeze = 5
-    start_freeze = n - num_unfreeze
-    for i in range(start_freeze, n):
-        model.layers[i].trainable = True
+    for layer in model.layers[:-num_unfreeze]:
+        layer.trainable = False
+        
     print("Unfroze {} layers".format(num_unfreeze))
+    return model
+    
     
 def get_effnetv2(do_fine_tuning, model_name, weights = 'imagenet', unfreeze = 0):
     tf.keras.backend.clear_session()
+    
     base_model = effnetv2_model.get_model(model_name, weights = weights, include_top=False)
-    base_model.trainable = do_fine_tuning
+    
     if unfreeze > 0:
-        unfreeze_effnet(base_model, unfreeze)
+        base_model = unfreeze_effnet(base_model, unfreeze)
+    else:
+        base_model.trainable = do_fine_tuning
         
     return base_model
 
@@ -119,7 +122,7 @@ def restore_model(checkpoint_path, compile_m = True, learning_rate = 0.001, mome
 def train_effnetv2(model, train_generator, valid_generator, num_epochs, learning_rate, decay = False,
                    restore = False,\
                    checkpoint_path = "/projectnb/dl523/students/nannkat/EC520/training/cp.ckpt",\
-                   model_path = '/projectnb/dl523/students/nannkat/EC520/training/effnetv2_model', momentum = 0.9):
+                   model_path = None, momentum = 0.9):
     
     print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
     checkpoint_dir = os.path.dirname(checkpoint_path)
@@ -146,7 +149,8 @@ def train_effnetv2(model, train_generator, valid_generator, num_epochs, learning
     
     
     #save model as a whole to share with the others
-    model.save(model_path)
+    if model_path != None:
+        model.save(model_path)
     
     return model, hist
 
