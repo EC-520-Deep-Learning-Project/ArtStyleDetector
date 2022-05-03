@@ -105,13 +105,14 @@ def get_new_model(unfreeze = 0):
 
 
 #restore model from checkpoint
-def restore_model(checkpoint_path, compile_m = True, learning_rate = 0.001, momentum = 0.9):
-    model_new = get_new_model()
+def restore_model(checkpoint_path, unfreeze = 0, compile_m = True, learning_rate = 0.001, momentum = 0.9):
+    model_new = get_new_model(unfreeze = unfreeze)
     
     if compile_m:
         model_new.compile(optimizer=tf.keras.optimizers.SGD(learning_rate=learning_rate, momentum=momentum), 
           loss=tf.keras.losses.CategoricalCrossentropy(from_logits=False, label_smoothing=0.1),
-          metrics=['accuracy', 'top_k_categorical_accuracy'])
+          metrics=['accuracy', tf.keras.metrics.TopKCategoricalAccuracy(k=3, name='top_3_categorical_accuracy'),
+                   'top_k_categorical_accuracy'])
         
     model_new.load_weights(checkpoint_path)
     return model_new
@@ -135,7 +136,8 @@ def train_effnetv2(model, train_generator, valid_generator, num_epochs, learning
     if not restore:
         model.compile(optimizer=tf.keras.optimizers.SGD(learning_rate=learning_rate, momentum=momentum), 
           loss=tf.keras.losses.CategoricalCrossentropy(from_logits=False, label_smoothing=0.1),
-          metrics=['accuracy', 'top_k_categorical_accuracy'])
+          metrics=['accuracy', tf.keras.metrics.TopKCategoricalAccuracy(k=3, name='top_3_categorical_accuracy'),
+                   'top_k_categorical_accuracy'])
     
     steps_per_epoch = train_generator.samples // train_generator.batch_size
     validation_steps = valid_generator.samples // valid_generator.batch_size
