@@ -1,3 +1,15 @@
+"""
+    File with functions for working with EfficientNet
+    Includes functions for:
+    -loading data
+    -creating a model
+    -restoring model from checkpoint
+    -training
+    -testing
+    -visualizations
+"""
+
+
 import os
 import sys
 import tensorflow.compat.v1 as tf
