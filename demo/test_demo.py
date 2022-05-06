@@ -17,6 +17,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 # Get the output into usable format
 softmax_torch = nn.Softmax(dim = 1)
 
+# Loading the models
 @st.experimental_singleton
 def load_vit(MODEL_PATH):
 
@@ -30,13 +31,6 @@ def load_vit(MODEL_PATH):
     transform_vit = create_transform(**config)
 
     return our_ViT,transform_vit
-
-# @st.experimental_singleton
-# def transform_vit(model,img):
-#   # Configuration of the network
-#   config = resolve_data_config({}, model=model)
-#   transform = create_transform(**config)
-#   return transform(img)
 
 @st.experimental_singleton
 def load_effnet(MODEL_PATH):
@@ -87,9 +81,8 @@ eff = load_effnet(location2)
 # Read in the style dictionary with predictions labels
 style_dictionary = get_dictionary()
 
-
 # Download user image
-img = st.file_uploader(label = 'Upload Image',type = ['jpg'])
+img = st.file_uploader(label = 'Upload Image',type = ['jpg','png'])
 
 if img != None:
     
@@ -98,6 +91,7 @@ if img != None:
     user_img = Image.open(img)
     st.image(user_img)
     st.title('Related Art Styles:')
+    
     # ViT Predictions
 
     vit_tensor = vit_transform(user_img).unsqueeze(0)
@@ -113,6 +107,8 @@ if img != None:
 
     eff_tensor = eff_transform(user_img)
 
+    
+
     eff_output = eff.predict(eff_tensor)
 
     eff_output = eff_output[0]
@@ -122,21 +118,7 @@ if img != None:
     eff_index = np.flip(eff_index)
     eff_predictions = eff_output[eff_index]
   
-
-
-
-    # eff_output = tf.nn.softmax(eff_output)
-    # eff_output = eff_output.numpy()
-    # eff_index = np.argsort(eff_output)[-TOPK:]
-    # eff_predictions = eff_output[eff_index]
-    # eff_predictions,eff_index = torch.topk(eff_output,TOPK)
-    # eff_predictions = eff_predictions.numpy()[0]
-    # eff_index = eff_index.numpy()[0]
-  
-
-    
-    # for idx,(vit_pred,eff_pred) in enumerate(zip(vit_index,eff_index)):
-   
+  # Displaying predictions
     cols = st.columns(2)
     with cols[0]:
         st.header('Predictions From ViT:')
